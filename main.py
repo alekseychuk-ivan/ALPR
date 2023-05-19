@@ -2,10 +2,10 @@ from ultralytics import YOLO
 from pathlib import Path
 from paddleocr import PaddleOCR
 import os
-from app.processing import *
+from function.processing import *
 
 
-weight = Path('detect/weights/model.pt')
+weight = Path('detect/model.pt')
 imagefolder = Path('test')
 outfolder = Path('out')
 yolo = YOLO(model=weight)

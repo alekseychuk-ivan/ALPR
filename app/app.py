@@ -2,13 +2,12 @@ import torch
 from ultralytics import YOLO
 from pathlib import Path
 from paddleocr import PaddleOCR
-from PIL import Image
 import io
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import Response, StreamingResponse
-from processing import *
+from function.processing import *
 
-weights = weight = Path('../detect/weights/model.pt')
+weights = Path('detect/model.pt')
 yolo = YOLO(model=weights)
 ocr = PaddleOCR(use_angle_cls=True, lang='en', )
 
@@ -31,6 +30,11 @@ app = FastAPI(
 #      allow_methods=["*"],
 #      allow_headers=["*"],
 # )
+
+
+@app.get("/")
+def read_root():
+    return {"Hello": "Ivan"}
 
 
 @app.get('/notify/v1/health')
@@ -178,8 +182,8 @@ async def detectplate(file: UploadFile = File(...)):
 #     return Response(im_png.tobytes(), media_type="image/jpeg")
 
 
-if __name__ == '__main__':
-    import uvicorn
-
-    app_str = 'app:app'
-    uvicorn.run(app_str, host='localhost', port=8000, reload=True, workers=1)
+# if __name__ == '__main__':
+#     import uvicorn
+#
+#     app_str = 'app:app'
+#     uvicorn.run(app_str, host='localhost', port=8000, reload=True, workers=1)
