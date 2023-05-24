@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.10-slim-buster
 
 WORKDIR /code
 
@@ -6,6 +6,7 @@ COPY ./requirements.txt /code/requirements.txt
 
 #RUN pip install --no-cache
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r /code/requirements.txt
 
