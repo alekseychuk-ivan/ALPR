@@ -1,17 +1,19 @@
-version: "3.10"
+#version: "3.10"
 services:
-  web:
+  alpr:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8001:8001"
+      - "8000:8000"
     volumes:
       - .:/code
+    restart: always
 
-    environment:
-      FLASK_DEBUG: "true"
-networks:
-  default:
-    external:
-      name: nostradamus-network
+
+#    environment:
+#      FLASK_DEBUG: "true"
+#networks:
+#  default:
+#    external:
+#      name: nostradamus-network

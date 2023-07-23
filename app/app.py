@@ -1,4 +1,8 @@
+from enum import Enum
+from typing import Dict, List
 import torch
+from pydantic import BaseModel, constr
+from starlette.responses import JSONResponse
 from ultralytics import YOLO
 from pathlib import Path
 from paddleocr import PaddleOCR
@@ -18,6 +22,26 @@ app = FastAPI(
     version="0.0.1",
 )
 
+
+class CarType(Enum):
+    car = 'car'
+    truck = 'truck'
+
+
+class CarPlate(BaseModel):
+    type: CarType
+    plate: str
+    # plate_conf: None | float
+
+
+ConStrType = constr(min_length=1)  # constr(regex=r'^[A-Z0-9]{4}-[A-Z0-9]{6}$')
+CarDict = Dict[ConStrType, CarPlate]
+
+
+class CarModel(BaseModel):
+    __root__: CarDict
+
+
 # origins = [
 #     "http://localhost",
 #     "http://localhost:8000",
@@ -33,18 +57,18 @@ app = FastAPI(
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "Ivan"}
+def read_root() -> JSONResponse:
+    return JSONResponse({"message": " Hello World"})
 
 
-@app.get('/notify/v1/health')
-def get_health():
-    return dict(msg='OK')
+# @app.get('/notify/v1/health')
+# def get_health():
+#     return dict(msg='OK')
 
 
 @app.get('/notify/cuda')
-def check_cuda():
-    return dict(device='cuda' if torch.cuda.is_available() else 'cpu')
+def check_cuda() -> JSONResponse:
+    return JSONResponse(dict(device='cuda' if torch.cuda.is_available() else 'cpu'))
 
 
 # @app.post("/detectPIL")
@@ -63,7 +87,7 @@ def check_cuda():
 
 
 @app.post("/detectCV")
-async def detect(file: UploadFile = File(...)):
+async def detect(file: UploadFile = File(...)) -> StreamingResponse:
     # since = time.time()
     contents = await file.read()
     nparr = np.fromstring(contents, np.uint8)
@@ -97,13 +121,14 @@ async def detect(file: UploadFile = File(...)):
     return StreamingResponse(io.BytesIO(im_png.tobytes()), media_type="image/jpeg")
 
 
-@app.post("/platecar")
+@app.post("/platecar", response_model=List[CarDict])
 async def detectplatecar(file: UploadFile = File(...)):
     contents = await file.read()
     nparr = np.fromstring(contents, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     outputs = yolo.predict(source=image, save=False)
     platelst = list()
+    i = 0
     for output in outputs:
         for out in output:
             if out.boxes.cls == car or out.boxes.cls == truck:
@@ -122,7 +147,11 @@ async def detectplatecar(file: UploadFile = File(...)):
                             numplate = ocr.ocr(carplate, det=False, cls=False)
                             text = datafilter(numplate[0][0][0])
                             if len(text) > 3:
-                                platelst.append((text, f'{"car" if out.boxes.cls == car else "truck"}'))
+                                platelst.append({f'Object_{i}':
+                                                {'type': f'{"car" if out.boxes.cls == car else "truck"}',
+                                                 'plate': text}})
+                                i += 1
+                                # platelst[f'Object_{i}'] = [(text, f'{"car" if out.boxes.cls == car else "truck"}')]
     return platelst
 
 
@@ -151,7 +180,6 @@ async def detectplate(file: UploadFile = File(...)):
                 platelst.append(text)
 
     return platelst
-
 
 # @app.post("/detectPILjson")
 # async def detect(file: UploadFile = File(...)):
