@@ -9,7 +9,9 @@ weight = Path('detect/model.pt')
 imagefolder = Path('test')
 outfolder = Path('out')
 yolo = YOLO(model=weight)
-ocr = PaddleOCR(use_angle_cls=True, lang='en')
+ocr = PaddleOCR(use_angle_cls=True, lang='en', det_model_dir='./detect/det_dir/',
+                rec_model_dir='./detect/rec_dir/',
+                cls_model_dir='./detect/cls_dir/')
 
 # for p, _, files in os.walk(imagefolder):
 #     for file in files:

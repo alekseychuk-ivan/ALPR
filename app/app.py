@@ -13,7 +13,9 @@ from function.processing import *
 
 weights = Path('detect/model.pt')
 yolo = YOLO(model=weights)
-ocr = PaddleOCR(use_angle_cls=True, lang='en', )
+ocr = PaddleOCR(use_angle_cls=True, lang='en', det_model_dir='./detect/det_dir/',
+                rec_model_dir='./detect/rec_dir/',
+                cls_model_dir='./detect/cls_dir/')
 
 app = FastAPI(
     title="Custom ALPR",
@@ -106,6 +108,8 @@ async def detect(file: UploadFile = File(...)) -> StreamingResponse:
                 result = ocr.ocr(im, det=False, cls=False)
                 text = datafilter(result[0][0][0])
                 print(result)
+                if len(text) == 0:
+                    continue
                 if len(text) < 5:
                     result = ocr.ocr(read_pate(image[y - 1: h, x - 1: w, :]), det=False, cls=False)
                     text = datafilter(result[0][0][0])
