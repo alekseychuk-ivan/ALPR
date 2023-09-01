@@ -3,18 +3,16 @@ from pathlib import Path
 from paddleocr import PaddleOCR
 import os
 from function.processing import *
-from shapely.geometry import Polygon, Point
-import matplotlib.path as mplPath
-import numpy as np
+
 
 weight = Path('detect/model.pt')
 imagefolder = Path('test')
 outfolder = Path('out')
 yolo = YOLO(model=weight)
-file = f'D:\\Python\\ALPR\\test\\20230831_666_0.jpg'
-# ocr = PaddleOCR(use_angle_cls=True, lang='en', det_model_dir='./detect/det_dir/',
-#                 rec_model_dir='./detect/rec_dir/',
-#                 cls_model_dir='./detect/cls_dir/')
+file = f'test/20230831_666_0.jpg'
+ocr = PaddleOCR(use_angle_cls=True, lang='en', det_model_dir='./detect/det_dir/',
+                rec_model_dir='./detect/rec_dir/',
+                cls_model_dir='./detect/cls_dir/')
 
 filename = Path(file).stem
 path = Path(file).parent
@@ -28,20 +26,31 @@ for output in outputs:
     for out in output:
         x, y, w, h = map(int, out.boxes.xyxy[0])
         if out.boxes.cls == plate:
-            platesdct[f'plate_{plate_i}'] = [[x, y, w, h],  int(out.boxes.conf), int(out.boxes.cls)]
+            platesdct[f'plate_{plate_i}'] = {'area': [x, y, w, h], 'conf': float(out.boxes.conf), }
             plate_i += 1
         elif out.boxes.cls == car or out.boxes.cls == truck:
-            carsdct[f'car_{car_i}'] = [[x, y, w, h], int(out.boxes.conf)]
+            carsdct[f'car_{car_i}'] = {'area': [x, y, w, h], 'conf': float(out.boxes.conf),
+                                       'car_class': int(out.boxes.cls), }
             car_i += 1
 
 
 for plate in platesdct:
-    xp, yp, wp, hp = platesdct[plate][0]
+    xp, yp, wp, hp = platesdct[plate]['area']
     for car in carsdct:
-        xc, yc, wc, hc = carsdct[car][0]
+        xc, yc, wc, hc = carsdct[car]['area']
         if xc <= xp and yc <= yp and wp <= wc and hp <= hc:
+            carplate = image[yp: hp, xp: wp, :]
+            carplate = cv2.resize(carplate, (94, 24), interpolation=cv2.INTER_CUBIC)
+            numplate = ocr.ocr(carplate, det=False, cls=False)
+            numplate_conf = numplate[0][0][1]
+            numplate = datafilter(numplate[0][0][0])
+            if 0 < len(numplate) < 5:
+                numplate = ocr.ocr(read_pate(carplate[y - 1: h, x - 1: w, :]), det=False, cls=False)
+                numplate_conf = numplate[0][0][1]
+                numplate = datafilter(numplate[0][0][0])
+            print(carsdct[car], platesdct[plate])
             with open(f"{os.path.join(path, filename)}.txt", "a") as my_file:
-                my_file.write()
+                my_file.write(f'{"car" if carsdct[car]["car_class"] == car else "truck" }')
 
 
 
